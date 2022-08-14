@@ -1,5 +1,28 @@
+#include <Arduino.h>
 #include <VirtualWire.h>
-#include <i2c_t3.h>
+#include <FastLED.h>
+#include <Visualization.h>
+#include <Sparkle.h>
+#include <Spectrum2.h>
+
+/*
+.                   ┌───────────────┐
+.                   │GND         Vin│
+.                   │0           GND│
+.               LED-│1           3.3│
+.                   │2            23│
+.                   │3            22│
+.                   │4            21│
+.                   │5            20│
+.                   │6            19│
+.                   │7            18│
+.                   │8            17│
+.                   │9            16│
+.                   │10   3 G P   15│
+.                   │11 1 . N G 2 14│
+.           RECEIVE-|12 7 3 D M 6 13│
+.                   └───────────────┘
+*/
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 // RECEIVER
@@ -23,6 +46,21 @@ byte messageData = 0;
 uint32_t sync = 0;
 
 
+////////////////////////////////////////////////////////////////////////////////////////////////
+// LEDS
+////////////////////////////////////////////////////////////////////////////////////////////////
+#define NUM_LEDS 40
+#define ROWS 1
+#define COLUMNS 40
+#define DISPLAY_LED_PIN 1
+
+CRGB leds[NUM_LEDS];
+CRGB off;
+
+Visualization * all;
+Sparkle * sparkle;
+
+void setAll(CRGB color);
 
 void setup() {
   while(!Serial && millis() < 10000);
@@ -33,18 +71,30 @@ void setup() {
   vw_setup(2000);	              // Bits per sec
   vw_rx_start();                // Start the receiver PLL running
 
-  Wire.begin(); // join i2c bus (address optional for master)
+  // LED SETUP
+  FastLED.addLeds<WS2812B, DISPLAY_LED_PIN>(leds, NUM_LEDS).setCorrection( TypicalLEDStrip );;
+  sparkle = new Sparkle(NUM_LEDS, 0, 0, leds, 557);
 }
 
 uint_fast8_t lastMessageID = 255;
+uint_fast32_t lastLog = 0;
+uint_fast32_t lastShow = 0;
 
 void loop() {
+  setAll(0x000000);  // clear leds
+  uint_fast32_t currentTime = millis();
+
+  if (currentTime > lastLog + 5000) {
+    Serial.println("loop");
+    lastLog = currentTime;
+  }
+
   uint8_t buf[VW_MAX_MESSAGE_LEN];
   uint8_t buflen = VW_MAX_MESSAGE_LEN;
 
   if (vw_get_message(buf, &buflen)) {
     if ((buf[0] != authByteStart) || (buf[buflen - 1] != authByteEnd)) {
-      // bad message
+      Serial.println("bad message");
       return;
     }
 
@@ -72,7 +122,7 @@ void loop() {
 
     if (messageType == 10 && buflen == 8) {
       // sync
-      sync = buf[3] << 24 | buf[4] << 16 | buf[5] << 16 | buf[6];
+      sync = buf[3] << 24 | buf[4] << 16 | buf[5] << 8 | buf[6];
       Serial.print("sync: ");
       Serial.println(sync);
     } else if (messageType > 0) {
@@ -122,5 +172,17 @@ void loop() {
           break;
       }
     }
+  }
+
+  sparkle->display();
+  if (currentTime > lastLog + 100) {
+    FastLED.show();
+    lastShow = currentTime;
+  }
+}
+
+void setAll(CRGB color) {
+  for (uint_fast16_t i=0; i<NUM_LEDS; i++) {
+    leds[i] = color;
   }
 }
