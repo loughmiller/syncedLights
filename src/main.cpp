@@ -7,27 +7,20 @@
 
 /*
 .                   ┌───────────────┐
-.                   │GND         Vin│
-.                   │0           GND│
-.               LED-│1           3.3│
-.                   │2            23│
-.                   │3            22│
-.                   │4            21│
-.                   │5            20│
-.                   │6            19│
-.                   │7            18│
-.                   │8            17│
-.                   │9            16│
-.                   │10   3 G P   15│
-.                   │11 1 . N G 2 14│
-.           RECEIVE-|12 7 3 D M 6 13│
+.                   │0           VIN│
+.               LED-│1           GND│
+.                   │2           3.3│
+.                   │3            10│
+.                   │4             9│
+.                   │5             8│
+.                   │6             7│
 .                   └───────────────┘
 */
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 // RECEIVER
 ////////////////////////////////////////////////////////////////////////////////////////////////
-const uint_fast8_t receive_pin = 12;
+const uint_fast8_t receive_pin = 7;
 const byte authByteStart = 117;
 const byte authByteEnd = 115;
 
@@ -175,10 +168,7 @@ void loop() {
   }
 
   sparkle->display();
-  if (currentTime > lastLog + 100) {
-    FastLED.show();
-    lastShow = currentTime;
-  }
+  FastLED.show();
 }
 
 void setAll(CRGB color) {
