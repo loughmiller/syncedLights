@@ -1,5 +1,6 @@
 #include <Arduino.h>
-#include <VirtualWire.h>
+#include <RH_ASK.h>
+#include <SPI.h>
 #include <FastLED.h>
 #include <Visualization.h>
 #include <Sparkle.h>
@@ -20,6 +21,8 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////
 // RECEIVER
 ////////////////////////////////////////////////////////////////////////////////////////////////
+RH_ASK driver;
+
 const uint_fast8_t receive_pin = 7;
 const byte authByteStart = 117;
 const byte authByteEnd = 115;
@@ -60,9 +63,9 @@ void setup() {
   Serial.println("setup");
 
   // Initialise the IO and ISR
-  vw_set_rx_pin(receive_pin);
-  vw_setup(2000);	              // Bits per sec
-  vw_rx_start();                // Start the receiver PLL running
+  if (!driver.init()) {
+    Serial.println("init failed");
+  }
 
   // LED SETUP
   FastLED.addLeds<WS2812B, DISPLAY_LED_PIN>(leds, NUM_LEDS).setCorrection( TypicalLEDStrip );;
@@ -82,10 +85,10 @@ void loop() {
     lastLog = currentTime;
   }
 
-  uint8_t buf[VW_MAX_MESSAGE_LEN];
-  uint8_t buflen = VW_MAX_MESSAGE_LEN;
+  uint8_t buf[12];
+  uint8_t buflen = sizeof(buf);
 
-  if (vw_get_message(buf, &buflen)) {
+  if (driver.recv(buf, &buflen)) {
     if ((buf[0] != authByteStart) || (buf[buflen - 1] != authByteEnd)) {
       Serial.println("bad message");
       return;
