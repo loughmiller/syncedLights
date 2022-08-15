@@ -68,8 +68,9 @@ void setup() {
   }
 
   // LED SETUP
-  FastLED.addLeds<WS2812B, DISPLAY_LED_PIN>(leds, NUM_LEDS).setCorrection( TypicalLEDStrip );;
+  FastLED.addLeds<WS2812B, DISPLAY_LED_PIN, GRB>(leds, NUM_LEDS).setCorrection( TypicalLEDStrip );;
   sparkle = new Sparkle(NUM_LEDS, 0, 244, leds, 557);
+  sparkle->setValue(64);
 }
 
 uint_fast8_t lastMessageID = 255;
@@ -174,7 +175,8 @@ void loop() {
     }
   }
 
-  sparkle->display();
+  sparkle->display(currentTime);
+  sparkle->setAll();
   FastLED.show();
 }
 
