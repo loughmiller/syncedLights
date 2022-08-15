@@ -80,10 +80,13 @@ void loop() {
   setAll(0x000000);  // clear leds
   uint_fast32_t currentTime = millis();
 
-  if (currentTime > lastLog + 5000) {
-    // Serial.println("loop");
-    lastLog = currentTime;
-  }
+  // if (currentTime > lastLog + 5000) {
+  //   Serial.print(currentTime);
+  //   Serial.print("\t");
+  //   Serial.print(sparkle->getHue());
+  //   Serial.println();
+  //   lastLog = currentTime;
+  // }
 
   uint8_t buf[12];
   uint8_t buflen = sizeof(buf);
