@@ -69,7 +69,7 @@ void setup() {
 
   // LED SETUP
   FastLED.addLeds<WS2812B, DISPLAY_LED_PIN>(leds, NUM_LEDS).setCorrection( TypicalLEDStrip );;
-  sparkle = new Sparkle(NUM_LEDS, 0, 0, leds, 557);
+  sparkle = new Sparkle(NUM_LEDS, 0, 244, leds, 557);
 }
 
 uint_fast8_t lastMessageID = 255;
@@ -81,7 +81,7 @@ void loop() {
   uint_fast32_t currentTime = millis();
 
   if (currentTime > lastLog + 5000) {
-    Serial.println("loop");
+    // Serial.println("loop");
     lastLog = currentTime;
   }
 
@@ -121,6 +121,7 @@ void loop() {
       sync = buf[3] << 24 | buf[4] << 16 | buf[5] << 8 | buf[6];
       Serial.print("sync: ");
       Serial.println(sync);
+      sparkle->setDriftOffset(sync);
     } else if (messageType > 0) {
       messageData = buf[3];
 
