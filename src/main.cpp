@@ -62,7 +62,7 @@ void setup() {
   while(!Serial && millis() < 10000);
   Serial.println("setup");
 
-  // Initialise the IO and ISR
+  // Initialise radiohead
   if (!driver.init()) {
     Serial.println("init failed");
   }
@@ -107,14 +107,14 @@ void loop() {
     lastMessageID = messageID;
 
     // LOGGING
-    Serial.print("Got: ");
+    // Serial.print("Got: ");
 
-    for (uint_fast8_t i = 0; i < buflen; i++) {
-      Serial.print(buf[i]);
-      Serial.print(' ');
-    }
+    // for (uint_fast8_t i = 0; i < buflen; i++) {
+    //   Serial.print(buf[i]);
+    //   Serial.print(' ');
+    // }
 
-    Serial.println();
+    // Serial.println();
 
     // END LOGGING
 
