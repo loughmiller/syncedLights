@@ -69,8 +69,9 @@ void setup() {
 
   // LED SETUP
   FastLED.addLeds<WS2812B, DISPLAY_LED_PIN, GRB>(leds, NUM_LEDS).setCorrection( TypicalLEDStrip );;
-  sparkle = new Sparkle(NUM_LEDS, 0, 244, leds, 557);
-  sparkle->setValue(64);
+  all = new Visualization(COLUMNS, ROWS, 0, 244, leds);
+  all->setValue(64);
+  sparkle = new Sparkle(NUM_LEDS, 0, 0, leds, 557);
 }
 
 uint_fast8_t lastMessageID = 255;
@@ -167,7 +168,7 @@ void loop() {
           Serial.println(messageData);
           break;
         case typeHue:
-          // changeAllHues(messageData);
+          all->setHue(messageData);
           Serial.print("Hue: ");
           Serial.println(messageData);
           break;
@@ -175,8 +176,11 @@ void loop() {
     }
   }
 
+
+  all->driftLoop(currentTime);
+  all->setAll();
+
   sparkle->display(currentTime);
-  sparkle->setAll();
   FastLED.show();
 }
 
