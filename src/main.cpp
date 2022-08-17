@@ -126,7 +126,8 @@ void loop() {
       sync = buf[3] << 24 | buf[4] << 16 | buf[5] << 8 | buf[6];
       Serial.print("sync: ");
       Serial.println(sync);
-      sparkle->setDriftOffset(sync);
+      // sparkle->synchronize(currentTime, sync);
+      all->synchronize(currentTime, sync);
     } else if (messageType > 0) {
       messageData = buf[3];
 
@@ -143,7 +144,7 @@ void loop() {
           Serial.println("Steal Color.");
           break;
         case typeCycle:
-          // setHueDrift(messageData);
+          all->setCycle(messageData);
           Serial.println("Cycle Colors.");
           break;
         case typeBrightness:
@@ -177,7 +178,7 @@ void loop() {
   }
 
 
-  all->driftLoop(currentTime);
+  all->cycleLoop(currentTime);
   all->setAll();
 
   sparkle->display(currentTime);
