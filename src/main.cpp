@@ -41,22 +41,26 @@ byte messageType = 0;
 byte messageData = 0;
 uint32_t sync = 0;
 
+const uint_fast8_t maxBrightness = 64;
+
+// FUNCTIONS
+void stealColorAnimation(uint_fast8_t hue);
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 // LEDS
 ////////////////////////////////////////////////////////////////////////////////////////////////
-#define NUM_LEDS 100
+#define NUM_LEDS 95
 #define ROWS 1
-#define COLUMNS 100
+#define COLUMNS 95
 #define DISPLAY_LED_PIN 1
+
+uint_fast8_t saturation = 244;
 
 CRGB leds[NUM_LEDS];
 CRGB off;
 
 Visualization * all;
 Sparkle * sparkle;
-
-void setAll(CRGB color);
 
 void setup() {
   while(!Serial && millis() < 10000);
@@ -68,9 +72,9 @@ void setup() {
   }
 
   // LED SETUP
-  FastLED.addLeds<WS2812B, DISPLAY_LED_PIN, GRB>(leds, NUM_LEDS).setCorrection( TypicalLEDStrip );;
-  all = new Visualization(COLUMNS, ROWS, 0, 244, leds);
-  all->setValue(64);
+  FastLED.addLeds<WS2812B, DISPLAY_LED_PIN, RGB>(leds, NUM_LEDS).setCorrection( TypicalLEDStrip );;
+  all = new Visualization(COLUMNS, ROWS, 0, saturation, leds);
+  all->setValue(maxBrightness);
   sparkle = new Sparkle(NUM_LEDS, 0, 0, leds, 557);
 }
 
@@ -79,7 +83,7 @@ uint_fast32_t lastLog = 0;
 uint_fast32_t lastShow = 0;
 
 void loop() {
-  setAll(0x000000);  // clear leds
+  all->clearAll();  // clear leds
   uint_fast32_t currentTime = millis();
 
   // if (currentTime > lastLog + 5000) {
@@ -124,9 +128,9 @@ void loop() {
     if (messageType == 10 && buflen == 8) {
       // sync
       sync = buf[3] << 24 | buf[4] << 16 | buf[5] << 8 | buf[6];
-      Serial.print("sync: ");
-      Serial.println(sync);
-      // sparkle->synchronize(currentTime, sync);
+      // Serial.print("sync: ");
+      // Serial.println(sync);
+      sparkle->synchronize(currentTime, sync);
       all->synchronize(currentTime, sync);
     } else if (messageType > 0) {
       messageData = buf[3];
@@ -137,29 +141,27 @@ void loop() {
       Serial.print("\t");
       Serial.println(messageData);
 
+     float percentBrightness = 0;
+
+
       switch(messageType) {
         case typeSteal:
-          // stealColorAnimation(messageData);
-          // changeAllHues(messageData);
+          stealColorAnimation(messageData);
           Serial.println("Steal Color.");
           break;
         case typeCycle:
           all->setCycle(messageData);
+          sparkle->setCycle(messageData);
           Serial.println("Cycle Colors.");
           break;
         case typeBrightness:
-          // brightness = messageData;
-          // setBrightness();
+          percentBrightness =  (float)messageData / 256.0;
+          all->setValue(percentBrightness * maxBrightness);
           Serial.print("Brightness: ");
           Serial.println(messageData);
           break;
-        case typeDensity:
-          // setDensity(messageData);
-          Serial.print("Density: ");
-          Serial.println(messageData);
-          break;
         case typeSparkles:
-          // setSparkles(messageData);
+          sparkle->setEmptiness(4294967295/((float)pow(messageData, 3.1)));
           Serial.print("Sparkles: ");
           Serial.println(messageData);
           break;
@@ -169,6 +171,7 @@ void loop() {
           Serial.println(messageData);
           break;
         case typeHue:
+          all->setCycle(0);
           all->setHue(messageData);
           Serial.print("Hue: ");
           Serial.println(messageData);
@@ -181,12 +184,21 @@ void loop() {
   all->cycleLoop(currentTime);
   all->setAll();
 
+
   sparkle->display(currentTime);
   FastLED.show();
 }
 
-void setAll(CRGB color) {
-  for (uint_fast16_t i=0; i<NUM_LEDS; i++) {
-    leds[i] = color;
+void stealColorAnimation(uint_fast8_t hue) {
+  CRGB color = CHSV(hue, saturation, maxBrightness);
+  all->clearAll();
+
+  uint_fast8_t delayMS = 100;
+
+  for (uint_fast16_t y=0; y<NUM_LEDS; y++) {
+    leds[y] = color;
+    FastLED.show();
+    delay(delayMS);
+    delayMS = max(delayMS * 0.99, 1);
   }
 }
