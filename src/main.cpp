@@ -4,7 +4,7 @@
 #include <FastLED.h>
 #include <Visualization.h>
 #include <Sparkle.h>
-#include <Spectrum2.h>
+#include <Streak.h>
 
 /*
 .                   ┌───────────────┐
@@ -49,9 +49,9 @@ void stealColorAnimation(uint_fast8_t hue);
 ////////////////////////////////////////////////////////////////////////////////////////////////
 // LEDS
 ////////////////////////////////////////////////////////////////////////////////////////////////
-#define NUM_LEDS 95
-#define ROWS 1
-#define COLUMNS 95
+#define NUM_LEDS 100
+#define ROWS 100
+#define COLUMNS 1
 #define DISPLAY_LED_PIN 1
 
 uint_fast8_t saturation = 244;
@@ -61,6 +61,7 @@ CRGB off;
 
 Visualization * all;
 Sparkle * sparkle;
+Streak * streak;
 
 void setup() {
   while(!Serial && millis() < 10000);
@@ -72,10 +73,20 @@ void setup() {
   }
 
   // LED SETUP
-  FastLED.addLeds<WS2812B, DISPLAY_LED_PIN, RGB>(leds, NUM_LEDS).setCorrection( TypicalLEDStrip );;
+  FastLED.addLeds<WS2812B, DISPLAY_LED_PIN, GRB>(leds, NUM_LEDS).setCorrection( TypicalLEDStrip );;
   all = new Visualization(COLUMNS, ROWS, 0, saturation, leds);
   all->setValue(maxBrightness);
   sparkle = new Sparkle(NUM_LEDS, 0, 0, leds, 557);
+
+  streak = new Streak(COLUMNS, ROWS, 0, saturation, leds);
+  streak->setValue(maxBrightness);
+  streak->setIntervalMinMax(16, 40);
+  streak->setLengthMinMax(4, 50);
+  streak->inititalize(millis());
+
+  all->setAllCRGB(0x000F00);
+  FastLED.show();
+  delay(1500);
 }
 
 uint_fast8_t lastMessageID = 255;
@@ -128,9 +139,10 @@ void loop() {
     if (messageType == 10 && buflen == 8) {
       // sync
       sync = buf[3] << 24 | buf[4] << 16 | buf[5] << 8 | buf[6];
-      // Serial.print("sync: ");
-      // Serial.println(sync);
+      Serial.print("sync: ");
+      Serial.println(sync);
       sparkle->synchronize(currentTime, sync);
+      streak->synchronize(currentTime, sync);
       all->synchronize(currentTime, sync);
     } else if (messageType > 0) {
       messageData = buf[3];
@@ -182,9 +194,11 @@ void loop() {
 
 
   all->cycleLoop(currentTime);
-  all->setAll();
+  sparkle->cycleLoop(currentTime);
+  streak->cycleLoop(currentTime);
 
 
+  streak->display(currentTime);
   sparkle->display(currentTime);
   FastLED.show();
 }
