@@ -73,16 +73,17 @@ void setup() {
   }
 
   // LED SETUP
-  FastLED.addLeds<WS2812B, DISPLAY_LED_PIN, GRB>(leds, NUM_LEDS).setCorrection( TypicalLEDStrip );;
+  FastLED.addLeds<WS2812B, DISPLAY_LED_PIN, RGB>(leds, NUM_LEDS).setCorrection( TypicalLEDStrip );;
   all = new Visualization(COLUMNS, ROWS, 0, saturation, leds);
-  all->setValue(maxBrightness);
+  all->setValue(32);
   sparkle = new Sparkle(NUM_LEDS, 0, 0, leds, 557);
 
   streak = new Streak(COLUMNS, ROWS, 0, saturation, leds);
-  streak->setValue(maxBrightness);
+  streak->setValue(128);
   streak->setIntervalMinMax(16, 40);
   streak->setLengthMinMax(4, 50);
   streak->inititalize(millis());
+  streak->setRandomHue(true);
 
   all->setAllCRGB(0x000F00);
   FastLED.show();
@@ -197,7 +198,7 @@ void loop() {
   sparkle->cycleLoop(currentTime);
   streak->cycleLoop(currentTime);
 
-
+  all->setAll();
   streak->display(currentTime);
   sparkle->display(currentTime);
   FastLED.show();
