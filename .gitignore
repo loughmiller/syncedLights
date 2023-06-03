@@ -31,5 +31,8 @@
 *.out
 *.app
 
-# Project Files
+# Project shit
 .pio
+.vscode
+*.code-workspace
+
