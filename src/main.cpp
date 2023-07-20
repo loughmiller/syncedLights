@@ -40,17 +40,22 @@ bool connected = false;
 ////////////////////////////////////////////////////////////////////////////////
 // LEDS
 ////////////////////////////////////////////////////////////////////////////////
-#define NUM_LEDS 100
-#define ROWS 100
+#define NUM_LEDS 56
+#define ROWS NUM_LEDS
 #define COLUMNS 1
-#define DISPLAY_LED_PIN 1
+
+#define NUM_LEDS_RIM 36
+#define DISPLAY_LED_PIN_RIM 1
+
+#define NUM_LEDS_BOLT 20
+#define DISPLAY_LED_PIN_BOLT 1
+
 
 uint_fast8_t saturation = 244;
 
 CRGB leds[NUM_LEDS];
-CRGB boardLED[1];
-CRGB off;
 
+// Visualization * bolt;
 Visualization * all;
 Sparkle * sparkle;
 Streak * streak;
@@ -69,6 +74,7 @@ uint_fast8_t lightningData [250] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 void setup() {
   Serial.begin(9600);
   while(!Serial && millis() < 5000);
+  delay(1000);
   Serial.println("setup");
 
   // WIFI SETUP
@@ -77,14 +83,17 @@ void setup() {
   mesh.onNewConnection(&newConnectionCallback);
 
   // LED SETUP
-  FastLED.addLeds<WS2812B, DISPLAY_LED_PIN, RGB>(leds, NUM_LEDS).setCorrection( TypicalLEDStrip );
+  Serial.println("add LEDs");
+  FastLED.addLeds<WS2812B, DISPLAY_LED_PIN_RIM, RGB>(leds+20, NUM_LEDS-20).setCorrection( TypicalLEDStrip );
+  FastLED.addLeds<WS2812B, 6, GRB>(leds, 20).setCorrection( TypicalLEDStrip );
 
+  // bolt = new Visualization(COLUMNS, ROWS, 0, saturation, leds);
   all = new Visualization(COLUMNS, ROWS, 0, saturation, leds);
-  all->setValue(32);
+  all->setValue(128);
   sparkle = new Sparkle(NUM_LEDS, 0, 0, leds, 557);
 
   streak = new Streak(COLUMNS, ROWS, 0, saturation, leds);
-  streak->setValue(128);
+  streak->setValue(224);
   streak->setIntervalMinMax(16, 40);
   streak->setLengthMinMax(4, 50);
   streak->inititalize(millis());
@@ -117,31 +126,31 @@ void loop() {
     //   FastLED.getFPS());
     // Serial.print(mesh.getNodeList().size());
     // Serial.print("\t");
-    // Serial.println(mesh.isConnected(1976237668));
 
     Serial.println(sin(currentTime/3000.0));
-
 
     if (mesh.getNodeList().size() == 0) {
       connected = false;
     } else {
       connected = true;
     }
+
+    Serial.println(mesh.getNodeList().size());
   }
 
-  if (newConnection) {
-    Serial.printf("New Connection, nodeId = %u\n", newConnection);
-    newConnection = 0;
-    lightning = 1;
-  }
+  // if (newConnection) {
+  //   Serial.printf("New Connection, nodeId = %u\n", newConnection);
+  //   newConnection = 0;
+  //   lightning = 1;
+  // }
 
-  if (lightning) {
-    lightningAnimation();
-  } else {
-  }
+  // if (lightning) {
+  //   lightningAnimation();
+  // } else {
+  // }
 
-  all->setValue(sin(currentTime/400.0)*32 + 64);
-  streak->setValue(sin(currentTime/400.0)*64 + 128);
+  // all->setValue(sin(currentTime/400.0)*32 + 64);
+  // streak->setValue(sin(currentTime/400.0)*64 + 128);
 
   all->cycleLoop(currentTime + offset);
   sparkle->cycleLoop(currentTime + offset);
@@ -152,13 +161,12 @@ void loop() {
   sparkle->display(currentTime + offset);
 
   if (!connected) {
-    leds[0] = 0x2F0000;
+    leds[20] = 0x2F0000;
   } else {
     // offset+=4;  }
   }
 
   FastLED.show();
-
 }
 
 
