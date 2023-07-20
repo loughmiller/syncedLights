@@ -1,54 +1,45 @@
 #include <Arduino.h>
-#include <RH_ASK.h>
-#include <SPI.h>
 #include <FastLED.h>
 #include <Visualization.h>
 #include <Sparkle.h>
 #include <Streak.h>
+#include <WIFI.h>
+#include <painlessMesh.h>
+#include <cmath>
 
 /*
 .                   ┌───────────────┐
 .                   │0           VIN│
-.               LED-│1           GND│
+.                   │1           GND│
 .                   │2           3.3│
 .                   │3            10│
-.                   │4             9│
+.                   │4             9│ - LED
 .                   │5             8│
 .                   │6             7│
 .                   └───────────────┘
 */
 
-////////////////////////////////////////////////////////////////////////////////////////////////
-// RECEIVER
-////////////////////////////////////////////////////////////////////////////////////////////////
-RH_ASK driver(2000, 7);
 
-const uint_fast8_t receive_pin = 7;
-const byte authByteStart = 117;
-const byte authByteEnd = 115;
+////////////////////////////////////////////////////////////////////////////////
+// WIFI
+////////////////////////////////////////////////////////////////////////////////
+#define   MESH_PREFIX     "wizardMesh"
+#define   MESH_PASSWORD   "somethingSneaky"
+#define   MESH_PORT       5555
 
-// message types
-const byte typeCycle = 1;
-const byte typeBrightness = 2;
-const byte typeDensity = 3;
-const byte typeSparkles = 4;
-const byte typeHue = 5;
-const byte typeStreaks = 7;
-const byte typeSolid = 8;
-const byte typeSteal = 9;
+Scheduler userScheduler; // to control your personal task
+painlessMesh  mesh;
 
-byte messageType = 0;
-byte messageData = 0;
-uint32_t sync = 0;
+uint32_t newConnection = 0;
+uint32_t lightning = 0;
+void newConnectionCallback(uint32_t nodeId);
+void lightningAnimation();
+bool connected = false;
 
-const uint_fast8_t maxBrightness = 64;
 
-// FUNCTIONS
-void stealColorAnimation(uint_fast8_t hue);
-
-////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 // LEDS
-////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 #define NUM_LEDS 100
 #define ROWS 100
 #define COLUMNS 1
@@ -57,23 +48,37 @@ void stealColorAnimation(uint_fast8_t hue);
 uint_fast8_t saturation = 244;
 
 CRGB leds[NUM_LEDS];
+CRGB boardLED[1];
 CRGB off;
 
 Visualization * all;
 Sparkle * sparkle;
 Streak * streak;
 
+uint_fast8_t offset = 0;
+
+////////////////////////////////////////////////////////////////////////////////
+// DATA
+////////////////////////////////////////////////////////////////////////////////
+uint_fast8_t lightningData [250] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 135, 135, 135, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 77, 77, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 174, 174, 182, 182, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+
+
+////////////////////////////////////////////////////////////////////////////////
+// SETUP
+////////////////////////////////////////////////////////////////////////////////
 void setup() {
-  while(!Serial && millis() < 10000);
+  Serial.begin(9600);
+  while(!Serial && millis() < 5000);
   Serial.println("setup");
 
-  // Initialise radiohead
-  if (!driver.init()) {
-    Serial.println("init failed");
-  }
+  // WIFI SETUP
+  mesh.setDebugMsgTypes( ERROR | STARTUP );  // set before init() so that you can see startup messages
+  mesh.init( MESH_PREFIX, MESH_PASSWORD, &userScheduler, MESH_PORT );
+  mesh.onNewConnection(&newConnectionCallback);
 
   // LED SETUP
-  FastLED.addLeds<WS2812B, DISPLAY_LED_PIN, RGB>(leds, NUM_LEDS).setCorrection( TypicalLEDStrip );;
+  FastLED.addLeds<WS2812B, DISPLAY_LED_PIN, RGB>(leds, NUM_LEDS).setCorrection( TypicalLEDStrip );
+
   all = new Visualization(COLUMNS, ROWS, 0, saturation, leds);
   all->setValue(32);
   sparkle = new Sparkle(NUM_LEDS, 0, 0, leds, 557);
@@ -85,135 +90,92 @@ void setup() {
   streak->inititalize(millis());
   streak->setRandomHue(true);
 
-  all->setAllCRGB(0x000F00);
-  FastLED.show();
-  delay(1500);
+  FastLED.clear(true);
+  FastLED.showColor(0x000F00);
+  Serial.println("green");
+  delay(500);
 }
 
-uint_fast8_t lastMessageID = 255;
-uint_fast32_t lastLog = 0;
-uint_fast32_t lastShow = 0;
 
+uint_fast32_t loggingTimestamp = 0;
+
+////////////////////////////////////////////////////////////////////////////////
+// LOOP
+////////////////////////////////////////////////////////////////////////////////
 void loop() {
-  all->clearAll();  // clear leds
-  uint_fast32_t currentTime = millis();
+  mesh.update();
+  FastLED.clear(true);
 
-  // if (currentTime > lastLog + 5000) {
-  //   Serial.print(currentTime);
-  //   Serial.print("\t");
-  //   Serial.print(sparkle->getHue());
-  //   Serial.println();
-  //   lastLog = currentTime;
-  // }
+  unsigned long currentTime = mesh.getNodeTime()/1000;
+  unsigned long localTime = millis();
 
-  uint8_t buf[12];
-  uint8_t buflen = sizeof(buf);
+  if (localTime > loggingTimestamp + 2000) {
+    loggingTimestamp = localTime;
+    // Serial.printf("%d\t%d: FPS: %d\n",
+    //   localTime,
+    //   mesh.getNodeTime()/1000,
+    //   FastLED.getFPS());
+    // Serial.print(mesh.getNodeList().size());
+    // Serial.print("\t");
+    // Serial.println(mesh.isConnected(1976237668));
 
-  if (driver.recv(buf, &buflen)) {
-    if ((buf[0] != authByteStart) || (buf[buflen - 1] != authByteEnd)) {
-      Serial.println("bad message");
-      return;
-    }
-
-    uint_fast8_t messageID = buf[1];
-
-    if (messageID == lastMessageID) {
-      return;
-    }
-
-    lastMessageID = messageID;
-
-    // LOGGING
-    // Serial.print("Got: ");
-
-    // for (uint_fast8_t i = 0; i < buflen; i++) {
-    //   Serial.print(buf[i]);
-    //   Serial.print(' ');
-    // }
-
-    // Serial.println();
-
-    // END LOGGING
-
-    messageType = buf[2];
-
-    if (messageType == 10 && buflen == 8) {
-      // sync
-      sync = buf[3] << 24 | buf[4] << 16 | buf[5] << 8 | buf[6];
-      Serial.print("sync: ");
-      Serial.println(sync);
-      sparkle->synchronize(currentTime, sync);
-      streak->synchronize(currentTime, sync);
-      all->synchronize(currentTime, sync);
-    } else if (messageType > 0) {
-      messageData = buf[3];
-
-      Serial.print("Control message:");
-      Serial.print("\t");
-      Serial.print(messageType);
-      Serial.print("\t");
-      Serial.println(messageData);
-
-     float percentBrightness = 0;
+    Serial.println(sin(currentTime/3000.0));
 
 
-      switch(messageType) {
-        case typeSteal:
-          stealColorAnimation(messageData);
-          Serial.println("Steal Color.");
-          break;
-        case typeCycle:
-          all->setCycle(messageData);
-          sparkle->setCycle(messageData);
-          Serial.println("Cycle Colors.");
-          break;
-        case typeBrightness:
-          percentBrightness =  (float)messageData / 256.0;
-          all->setValue(percentBrightness * maxBrightness);
-          Serial.print("Brightness: ");
-          Serial.println(messageData);
-          break;
-        case typeSparkles:
-          sparkle->setEmptiness(4294967295/((float)pow(messageData, 3.1)));
-          Serial.print("Sparkles: ");
-          Serial.println(messageData);
-          break;
-        case typeStreaks:
-          // setStreaks(messageData);
-          Serial.print("Streaks: ");
-          Serial.println(messageData);
-          break;
-        case typeHue:
-          all->setCycle(0);
-          all->setHue(messageData);
-          Serial.print("Hue: ");
-          Serial.println(messageData);
-          break;
-      }
+    if (mesh.getNodeList().size() == 0) {
+      connected = false;
+    } else {
+      connected = true;
     }
   }
 
+  if (newConnection) {
+    Serial.printf("New Connection, nodeId = %u\n", newConnection);
+    newConnection = 0;
+    lightning = 1;
+  }
 
-  all->cycleLoop(currentTime);
-  sparkle->cycleLoop(currentTime);
-  streak->cycleLoop(currentTime);
+  if (lightning) {
+    lightningAnimation();
+  } else {
+  }
+
+  all->setValue(sin(currentTime/400.0)*32 + 64);
+  streak->setValue(sin(currentTime/400.0)*64 + 128);
+
+  all->cycleLoop(currentTime + offset);
+  sparkle->cycleLoop(currentTime + offset);
+  streak->cycleLoop(currentTime + offset);
 
   all->setAll();
-  streak->display(currentTime);
-  sparkle->display(currentTime);
+  streak->display(currentTime + offset);
+  sparkle->display(currentTime + offset);
+
+  if (!connected) {
+    leds[0] = 0x2F0000;
+  } else {
+    // offset+=4;  }
+  }
+
   FastLED.show();
+
 }
 
-void stealColorAnimation(uint_fast8_t hue) {
-  CRGB color = CHSV(hue, saturation, maxBrightness);
-  all->clearAll();
 
-  uint_fast8_t delayMS = 100;
+////////////////////////////////////////////////////////////////////////////////
+// FUNCTIONS
+////////////////////////////////////////////////////////////////////////////////
+void newConnectionCallback(uint32_t nodeId) {
+  newConnection = nodeId;
+}
 
-  for (uint_fast16_t y=0; y<NUM_LEDS; y++) {
-    leds[y] = color;
-    FastLED.show();
-    delay(delayMS);
-    delayMS = max(delayMS * 0.99, 1);
+void lightningAnimation() {
+  all->setAllCRGB(CHSV(0, 0, lightningData[lightning]));
+
+  lightning++;
+
+  if (lightning >= sizeof(lightningData)/sizeof(lightningData[0])) {
+    lightning = 0;
   }
+
 }
