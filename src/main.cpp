@@ -48,19 +48,17 @@ bool connected = false;
 #define DISPLAY_LED_PIN_RIM 1
 
 #define NUM_LEDS_BOLT 20
-#define DISPLAY_LED_PIN_BOLT 1
+#define DISPLAY_LED_PIN_BOLT 6
 
 
 uint_fast8_t saturation = 244;
 
 CRGB leds[NUM_LEDS];
 
-// Visualization * bolt;
+Visualization * bolt;
 Visualization * all;
 Sparkle * sparkle;
 Streak * streak;
-
-uint_fast8_t offset = 0;
 
 ////////////////////////////////////////////////////////////////////////////////
 // DATA
@@ -84,16 +82,18 @@ void setup() {
 
   // LED SETUP
   Serial.println("add LEDs");
-  FastLED.addLeds<WS2812B, DISPLAY_LED_PIN_RIM, RGB>(leds+20, NUM_LEDS-20).setCorrection( TypicalLEDStrip );
-  FastLED.addLeds<WS2812B, 6, GRB>(leds, 20).setCorrection( TypicalLEDStrip );
+  FastLED.addLeds<WS2812B, DISPLAY_LED_PIN_RIM, RGB>(leds+NUM_LEDS_BOLT, NUM_LEDS_RIM).setCorrection( TypicalLEDStrip );
+  FastLED.addLeds<WS2812B, DISPLAY_LED_PIN_BOLT, GRB>(leds, NUM_LEDS_BOLT).setCorrection( TypicalLEDStrip );
 
-  // bolt = new Visualization(COLUMNS, ROWS, 0, saturation, leds);
+  bolt = new Visualization(COLUMNS, NUM_LEDS_BOLT, 0, saturation, leds);
+  bolt->setValue(96);
+
   all = new Visualization(COLUMNS, ROWS, 0, saturation, leds);
-  all->setValue(128);
+  all->setValue(32);
   sparkle = new Sparkle(NUM_LEDS, 0, 0, leds, 557);
 
   streak = new Streak(COLUMNS, ROWS, 0, saturation, leds);
-  streak->setValue(224);
+  streak->setValue(160);
   streak->setIntervalMinMax(16, 40);
   streak->setLengthMinMax(4, 50);
   streak->inititalize(millis());
@@ -104,7 +104,6 @@ void setup() {
   Serial.println("green");
   delay(500);
 }
-
 
 uint_fast32_t loggingTimestamp = 0;
 
@@ -127,7 +126,7 @@ void loop() {
     // Serial.print(mesh.getNodeList().size());
     // Serial.print("\t");
 
-    Serial.println(sin(currentTime/3000.0));
+    // Serial.println(sin(currentTime/3000.0));
 
     if (mesh.getNodeList().size() == 0) {
       connected = false;
@@ -152,18 +151,18 @@ void loop() {
   // all->setValue(sin(currentTime/400.0)*32 + 64);
   // streak->setValue(sin(currentTime/400.0)*64 + 128);
 
-  all->cycleLoop(currentTime + offset);
-  sparkle->cycleLoop(currentTime + offset);
-  streak->cycleLoop(currentTime + offset);
+  all->cycleLoop(currentTime);
+  bolt->cycleLoop(currentTime);
+  sparkle->cycleLoop(currentTime);
+  streak->cycleLoop(currentTime);
 
   all->setAll();
-  streak->display(currentTime + offset);
-  sparkle->display(currentTime + offset);
+  bolt->setAll();
+  streak->display(currentTime);
+  sparkle->display(currentTime);
 
   if (!connected) {
     leds[20] = 0x2F0000;
-  } else {
-    // offset+=4;  }
   }
 
   FastLED.show();
@@ -178,7 +177,7 @@ void newConnectionCallback(uint32_t nodeId) {
 }
 
 void lightningAnimation() {
-  all->setAllCRGB(CHSV(0, 0, lightningData[lightning]));
+  bolt->setAllCRGB(CHSV(0, 0, lightningData[lightning]));
 
   lightning++;
 
