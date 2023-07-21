@@ -48,19 +48,10 @@ bool connected = false;
 uint_fast8_t saturation = 244;
 
 CRGB leds[NUM_LEDS];
-CRGB boardLED[1];
-CRGB off;
 
 Visualization * all;
 Sparkle * sparkle;
 Streak * streak;
-
-uint_fast8_t offset = 0;
-
-////////////////////////////////////////////////////////////////////////////////
-// DATA
-////////////////////////////////////////////////////////////////////////////////
-uint_fast8_t lightningData [250] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 135, 135, 135, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 77, 77, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 174, 174, 182, 182, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -119,8 +110,6 @@ void loop() {
     // Serial.print("\t");
     // Serial.println(mesh.isConnected(1976237668));
 
-    Serial.println(sin(currentTime/3000.0));
-
 
     if (mesh.getNodeList().size() == 0) {
       connected = false;
@@ -132,29 +121,18 @@ void loop() {
   if (newConnection) {
     Serial.printf("New Connection, nodeId = %u\n", newConnection);
     newConnection = 0;
-    lightning = 1;
   }
 
-  if (lightning) {
-    lightningAnimation();
-  } else {
-  }
-
-  all->setValue(sin(currentTime/400.0)*32 + 64);
-  streak->setValue(sin(currentTime/400.0)*64 + 128);
-
-  all->cycleLoop(currentTime + offset);
-  sparkle->cycleLoop(currentTime + offset);
-  streak->cycleLoop(currentTime + offset);
+  all->cycleLoop(currentTime);
+  sparkle->cycleLoop(currentTime);
+  streak->cycleLoop(currentTime);
 
   all->setAll();
-  streak->display(currentTime + offset);
-  sparkle->display(currentTime + offset);
+  streak->display(currentTime);
+  sparkle->display(currentTime);
 
   if (!connected) {
     leds[0] = 0x2F0000;
-  } else {
-    // offset+=4;  }
   }
 
   FastLED.show();
@@ -167,15 +145,4 @@ void loop() {
 ////////////////////////////////////////////////////////////////////////////////
 void newConnectionCallback(uint32_t nodeId) {
   newConnection = nodeId;
-}
-
-void lightningAnimation() {
-  all->setAllCRGB(CHSV(0, 0, lightningData[lightning]));
-
-  lightning++;
-
-  if (lightning >= sizeof(lightningData)/sizeof(lightningData[0])) {
-    lightning = 0;
-  }
-
 }
