@@ -75,6 +75,10 @@ void setup() {
   delay(1000);
   Serial.println("setup");
 
+  Serial.println(setCpuFrequencyMhz(80));
+  Serial.println(getCpuFrequencyMhz());
+
+
   // WIFI SETUP
   mesh.setDebugMsgTypes( ERROR | STARTUP );  // set before init() so that you can see startup messages
   mesh.init( MESH_PREFIX, MESH_PASSWORD, &userScheduler, MESH_PORT );
