@@ -40,8 +40,8 @@ bool connected = false;
 ////////////////////////////////////////////////////////////////////////////////
 // LEDS
 ////////////////////////////////////////////////////////////////////////////////
-#define NUM_LEDS 100
-#define ROWS 100
+#define NUM_LEDS 50
+#define ROWS 50
 #define COLUMNS 1
 #define DISPLAY_LED_PIN 1
 
@@ -60,7 +60,11 @@ Streak * streak;
 void setup() {
   Serial.begin(9600);
   while(!Serial && millis() < 5000);
+  delay(1000);
   Serial.println("setup");
+
+  Serial.println(setCpuFrequencyMhz(80));
+  Serial.println(getCpuFrequencyMhz());
 
   // WIFI SETUP
   mesh.setDebugMsgTypes( ERROR | STARTUP );  // set before init() so that you can see startup messages
