@@ -86,10 +86,10 @@ void setup() {
 
   // LED SETUP
   Serial.println("add LEDs");
-  FastLED.addLeds<WS2812B, DISPLAY_LED_PIN_RIM, RGB>(leds+NUM_LEDS_BOLT, NUM_LEDS_RIM).setCorrection( TypicalLEDStrip );
-  FastLED.addLeds<WS2812B, DISPLAY_LED_PIN_BOLT, GRB>(leds, NUM_LEDS_BOLT).setCorrection( TypicalLEDStrip );
+  FastLED.addLeds<WS2812B, DISPLAY_LED_PIN_RIM, RGB>(leds, NUM_LEDS_RIM).setCorrection( TypicalLEDStrip );
+  FastLED.addLeds<WS2812B, DISPLAY_LED_PIN_BOLT, GRB>(leds + NUM_LEDS_RIM, NUM_LEDS_BOLT).setCorrection( TypicalLEDStrip );
 
-  bolt = new Visualization(COLUMNS, NUM_LEDS_BOLT, 0, saturation, leds);
+  bolt = new Visualization(COLUMNS, NUM_LEDS_BOLT, 0, saturation, leds + NUM_LEDS_RIM);
   bolt->setValue(96);
 
   all = new Visualization(COLUMNS, ROWS, 0, saturation, leds);
@@ -105,6 +105,11 @@ void setup() {
 
   FastLED.clear(true);
   FastLED.showColor(0x000F00);
+  Serial.println("green");
+  Serial.println("green");
+  Serial.println("green");
+  Serial.println("green");
+  Serial.println("green");
   Serial.println("green");
   delay(500);
 }
@@ -138,7 +143,7 @@ void loop() {
       connected = true;
     }
 
-    Serial.println(mesh.getNodeList().size());
+    // Serial.println(mesh.getNodeList().size());
   }
 
   // if (newConnection) {
@@ -166,7 +171,7 @@ void loop() {
   sparkle->display(currentTime);
 
   if (!connected) {
-    leds[20] = 0x2F0000;
+    leds[0] = 0x2F0000;
   }
 
   FastLED.show();
