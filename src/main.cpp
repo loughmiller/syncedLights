@@ -48,7 +48,7 @@ bool connected = false;
 #define DISPLAY_LED_PIN_RIM 1
 
 #define NUM_LEDS_BOLT 20
-#define DISPLAY_LED_PIN_BOLT 6
+#define DISPLAY_LED_PIN_BOLT 34
 
 
 uint_fast8_t saturation = 244;
@@ -70,8 +70,14 @@ uint_fast8_t lightningData [250] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 // SETUP
 ////////////////////////////////////////////////////////////////////////////////
 void setup() {
+  // LED SETUP
+  FastLED.addLeds<WS2812B, DISPLAY_LED_PIN_RIM, RGB>(leds, NUM_LEDS_RIM).setCorrection( TypicalLEDStrip );
+  FastLED.addLeds<WS2812B, DISPLAY_LED_PIN_BOLT, GRB>(leds + NUM_LEDS_RIM, NUM_LEDS_BOLT).setCorrection( TypicalLEDStrip );
+  FastLED.clear(true);
+  FastLED.showColor(0x000F00);
+
   Serial.begin(9600);
-  while(!Serial && millis() < 5000);
+  //while(!Serial && millis() < 5000);
   delay(1000);
   Serial.println("setup");
 
