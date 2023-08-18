@@ -6,7 +6,13 @@
 #include <WIFI.h>
 #include <painlessMesh.h>
 #include <cmath>
-// #include <UMS3.h>
+#include <UMS3.h>
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Tinys3 Helpers
+////////////////////////////////////////////////////////////////////////////////
+UMS3 tinyS3;
 
 ////////////////////////////////////////////////////////////////////////////////
 // WIFI
@@ -59,7 +65,7 @@ void setup() {
   Serial.println(setCpuFrequencyMhz(80));
   Serial.println(getCpuFrequencyMhz());
 
-  // ums3.begin();
+  tinyS3.begin();
 
   // WIFI SETUP
   mesh.setDebugMsgTypes( ERROR | STARTUP );  // set before init() so that you can see startup messages
@@ -93,24 +99,14 @@ void loop() {
   // Serial.println("loop");
   mesh.update();
   // Serial.println("mesh updated");
-  FastLED.clear(true);
+  FastLED.clear();
   // Serial.println("LEDs Cleared");
-
-  if (digitalRead(33)) {
-    Serial.println("charging");
-    FastLED.clear();
-    leds[0] = 0x002F00;
-    FastLED.show();
-    delay(5000);
-
-    return;
-  }
 
   unsigned long currentTime = mesh.getNodeTime()/1000;
   unsigned long localTime = millis();
 
   if (localTime > loggingTimestamp + 2000) {
-    Serial.println("logging");
+    // Serial.println("logging");
     loggingTimestamp = localTime;
     // Serial.printf("%d\t%d: FPS: %d\n",
     //   localTime,
@@ -126,8 +122,26 @@ void loop() {
       connected = true;
     }
 
-    // mesh.sendBroadcast((String)ums3.getBatteryVoltage());
+    Serial.print("connected: ");
+    Serial.println(connected);
+
+    if (connected) {
+      Serial.println("Sending Voltage");
+      mesh.sendBroadcast((String)tinyS3.getBatteryVoltage());
+    }
+
+    if (digitalRead(33)) {
+      Serial.println("charging");
+      FastLED.clear();
+    }
   }
+
+  if (digitalRead(33)) {
+    leds[0] = 0x002F00;
+    FastLED.show();
+    return;
+  }
+
 
   if (newConnection) {
     Serial.printf("New Connection, nodeId = %u\n", newConnection);
