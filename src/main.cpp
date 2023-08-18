@@ -6,19 +6,7 @@
 #include <WIFI.h>
 #include <painlessMesh.h>
 #include <cmath>
-
-/*
-.                   ┌───────────────┐
-.                   │0           VIN│
-.                   │1           GND│
-.                   │2           3.3│
-.                   │3            10│
-.                   │4             9│ - LED
-.                   │5             8│
-.                   │6             7│
-.                   └───────────────┘
-*/
-
+// #include <UMS3.h>
 
 ////////////////////////////////////////////////////////////////////////////////
 // WIFI
@@ -58,21 +46,27 @@ Streak * streak;
 // SETUP
 ////////////////////////////////////////////////////////////////////////////////
 void setup() {
+  // LED SETUP
+  FastLED.addLeds<WS2812B, DISPLAY_LED_PIN, RGB>(leds, NUM_LEDS).setCorrection( TypicalLEDStrip );
+  FastLED.clear(true);
+  FastLED.showColor(0x000900);
+
   Serial.begin(9600);
-  while(!Serial && millis() < 5000);
+  // while(!Serial && millis() < 5000);
   delay(1000);
   Serial.println("setup");
 
   Serial.println(setCpuFrequencyMhz(80));
   Serial.println(getCpuFrequencyMhz());
 
+  // ums3.begin();
+
   // WIFI SETUP
   mesh.setDebugMsgTypes( ERROR | STARTUP );  // set before init() so that you can see startup messages
   mesh.init( MESH_PREFIX, MESH_PASSWORD, &userScheduler, MESH_PORT );
   mesh.onNewConnection(&newConnectionCallback);
 
-  // LED SETUP
-  FastLED.addLeds<WS2812B, DISPLAY_LED_PIN, RGB>(leds, NUM_LEDS).setCorrection( TypicalLEDStrip );
+  Serial.println("wifi setup complete");
 
   all = new Visualization(COLUMNS, ROWS, 0, saturation, leds);
   all->setValue(32);
@@ -85,12 +79,10 @@ void setup() {
   streak->inititalize(millis());
   streak->setRandomHue(true);
 
-  FastLED.clear(true);
-  FastLED.showColor(0x000F00);
-  Serial.println("green");
-  delay(500);
+  // Serial.println("setup complete");
+  // Serial.println("setup complete");
+  // Serial.println(ARDUINO_TINYS3);
 }
-
 
 uint_fast32_t loggingTimestamp = 0;
 
@@ -98,13 +90,27 @@ uint_fast32_t loggingTimestamp = 0;
 // LOOP
 ////////////////////////////////////////////////////////////////////////////////
 void loop() {
+  // Serial.println("loop");
   mesh.update();
+  // Serial.println("mesh updated");
   FastLED.clear(true);
+  // Serial.println("LEDs Cleared");
+
+  if (digitalRead(33)) {
+    Serial.println("charging");
+    FastLED.clear();
+    leds[0] = 0x002F00;
+    FastLED.show();
+    delay(5000);
+
+    return;
+  }
 
   unsigned long currentTime = mesh.getNodeTime()/1000;
   unsigned long localTime = millis();
 
   if (localTime > loggingTimestamp + 2000) {
+    Serial.println("logging");
     loggingTimestamp = localTime;
     // Serial.printf("%d\t%d: FPS: %d\n",
     //   localTime,
@@ -114,12 +120,13 @@ void loop() {
     // Serial.print("\t");
     // Serial.println(mesh.isConnected(1976237668));
 
-
     if (mesh.getNodeList().size() == 0) {
       connected = false;
     } else {
       connected = true;
     }
+
+    // mesh.sendBroadcast((String)ums3.getBatteryVoltage());
   }
 
   if (newConnection) {
@@ -140,9 +147,7 @@ void loop() {
   }
 
   FastLED.show();
-
 }
-
 
 ////////////////////////////////////////////////////////////////////////////////
 // FUNCTIONS
