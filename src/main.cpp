@@ -6,13 +6,6 @@
 #include <WIFI.h>
 #include <painlessMesh.h>
 #include <cmath>
-#include <UMS3.h>
-
-
-////////////////////////////////////////////////////////////////////////////////
-// Tinys3 Helpers
-////////////////////////////////////////////////////////////////////////////////
-UMS3 tinyS3;
 
 ////////////////////////////////////////////////////////////////////////////////
 // WIFI
@@ -37,7 +30,7 @@ bool connected = false;
 #define NUM_LEDS 50
 #define ROWS 50
 #define COLUMNS 1
-#define DISPLAY_LED_PIN 1
+#define DISPLAY_LED_PIN 9
 
 uint_fast8_t saturation = 244;
 
@@ -65,7 +58,6 @@ void setup() {
   Serial.println(setCpuFrequencyMhz(80));
   Serial.println(getCpuFrequencyMhz());
 
-  tinyS3.begin();
 
   // WIFI SETUP
   mesh.setDebugMsgTypes( ERROR | STARTUP );  // set before init() so that you can see startup messages
@@ -88,6 +80,10 @@ void setup() {
   // Serial.println("setup complete");
   // Serial.println("setup complete");
   // Serial.println(ARDUINO_TINYS3);
+
+  // Use D9 as ground pin for LEDs
+  pinMode(8, OUTPUT);
+  digitalWrite(8, LOW);
 }
 
 uint_fast32_t loggingTimestamp = 0;
@@ -125,21 +121,6 @@ void loop() {
     Serial.print("connected: ");
     Serial.println(connected);
 
-    if (connected) {
-      Serial.println("Sending Voltage");
-      mesh.sendBroadcast((String)tinyS3.getBatteryVoltage());
-    }
-
-    if (digitalRead(33)) {
-      Serial.println("charging");
-      FastLED.clear();
-    }
-  }
-
-  if (digitalRead(33)) {
-    leds[0] = 0x002F00;
-    FastLED.show();
-    return;
   }
 
 
