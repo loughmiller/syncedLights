@@ -33,15 +33,22 @@ uint32_t newConnection = 0;
 ////////////////////////////////////////////////////////////////////////////////
 // LEDS
 ////////////////////////////////////////////////////////////////////////////////
-#define NUM_LEDS 50
-#define ROWS 50
+#define NUM_LEDS 56
+#define ROWS NUM_LEDS
 #define COLUMNS 1
-#define DISPLAY_LED_PIN 1
+
+#define NUM_LEDS_RIM 36
+#define DISPLAY_LED_PIN_RIM 5
+
+#define NUM_LEDS_BOLT 20
+#define DISPLAY_LED_PIN_BOLT 34
+
 
 uint_fast8_t saturation = 244;
 
 CRGB leds[NUM_LEDS];
 
+Visualization * bolt;
 Visualization * all;
 Sparkle * sparkle;
 Streak * streak;
@@ -61,7 +68,8 @@ Streak * streak;
 ////////////////////////////////////////////////////////////////////////////////
 void setup() {
   // LED SETUP
-  FastLED.addLeds<WS2812B, DISPLAY_LED_PIN, RGB>(leds, NUM_LEDS).setCorrection( TypicalLEDStrip );
+  FastLED.addLeds<WS2812B, DISPLAY_LED_PIN_RIM, RGB>(leds, NUM_LEDS).setCorrection( TypicalLEDStrip );
+  FastLED.addLeds<WS2812B, DISPLAY_LED_PIN_BOLT, GRB>(leds + NUM_LEDS_RIM, NUM_LEDS_BOLT).setCorrection( TypicalLEDStrip );
   FastLED.clear(true);
   FastLED.showColor(0x000900);
 
