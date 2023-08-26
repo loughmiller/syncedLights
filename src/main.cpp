@@ -36,7 +36,7 @@ uint32_t newConnection = 0;
 #define NUM_LEDS 50
 #define ROWS 50
 #define COLUMNS 1
-#define DISPLAY_LED_PIN 34
+#define DISPLAY_LED_PIN 1
 
 uint_fast8_t saturation = 244;
 
@@ -46,6 +46,15 @@ Visualization * all;
 Sparkle * sparkle;
 Streak * streak;
 
+
+////////////////////////////////////////////////////////////////////////////////
+// PROTOCOL
+////////////////////////////////////////////////////////////////////////////////
+// const byte typeCycle = 1;
+// const byte typeBrightness = 2;
+// const byte typeSparkles = 4;
+// const byte typeHue = 5;
+// const byte typeSteal = 9;
 
 ////////////////////////////////////////////////////////////////////////////////
 // SETUP
@@ -84,9 +93,13 @@ void setup() {
   streak->inititalize(millis());
   streak->setRandomHue(true);
 
-  // Serial.println("setup complete");
-  // Serial.println("setup complete");
-  // Serial.println(ARDUINO_TINYS3);
+  Serial.println("setup complete");
+  Serial.println("setup complete");
+  Serial.println("setup complete");
+  Serial.println("setup complete");
+  Serial.println("setup complete");
+  Serial.println("setup complete");
+  Serial.println("SYNCED LIGHTS");
 }
 
 uint_fast32_t loggingTimestamp = 0;
@@ -116,13 +129,16 @@ void loop() {
     // Serial.println(mesh.isConnected(1976237668));
 
     if (mesh.getNodeList().size() == 0) {
+      if (connected) {
+        Serial.println("disconnected");
+      }
       connected = false;
     } else {
+      if (!connected) {
+        Serial.println("connected");
+      }
       connected = true;
     }
-
-    Serial.print("connected: ");
-    Serial.println(connected);
 
     // if (connected) {
     //   Serial.println("Sending Voltage");
@@ -134,7 +150,7 @@ void loop() {
     // }
   }
 
-  // Stop Lights while charging
+  // // Stop Lights while charging
   // if (digitalRead(33)) {
   //   leds[0] = 0x002F00;
   //   FastLED.show();
@@ -171,8 +187,55 @@ void newConnectionCallback(uint32_t nodeId) {
 
 void receivedCallback(uint32_t from, String &msg) {
   Serial.printf("Received from %u msg=%s\n", from, msg.c_str());
-  if (msg == "10") {
-    all->synchronize(mesh.getNodeTime()/1000, msg.toInt());
-    streak->synchronize(mesh.getNodeTime()/1000, msg.toInt());
+
+  DynamicJsonDocument config(256);
+  deserializeJson(config, msg);
+
+  if (config["sync"]) {
+    uint32_t sync = config["sync"];
+    // Serial.print("updating sync: ");
+    // Serial.println(sync);
+    all->synchronize(mesh.getNodeTime()/1000, sync);
+    streak->synchronize(mesh.getNodeTime()/1000, sync);
+  }
+
+  if(config["cycle"]) {
+    uint8_t cycle = config["cycle"];
+    Serial.print("updating cycle: ");
+    if (cycle == 255) {
+      all->setCycle(0);
+      streak->setCycle(0);
+      streak->setRandomHue(false);
+      Serial.println(0);
+    } else {
+      all->setCycle(cycle);
+      streak->setCycle(cycle);
+      streak->setRandomHue(true);
+      Serial.println(cycle);
+    }
+  }
+
+  if(config["brightness"]) {
+    uint8_t brightness = config["brightness"];
+    // Serial.print("updating brightness: ");
+    // Serial.println(brightness);
+    all->setValue(brightness/4);
+    streak->setValue(brightness/2);
+  }
+
+  if(config["sparkles"]) {
+    uint_fast32_t sparkles = config["sparkles"];
+    Serial.print("updating sparkles: ");
+    Serial.println(sparkles);
+    //sparkle->setEmptiness(4294967295/((float)pow(sparkles, 3.1)));
+    sparkle->setEmptiness(sparkles);
+  }
+
+  if(config["hue"]) {
+    uint8_t hue = config["hue"];
+    Serial.print("updating hue: ");
+    Serial.println(hue);
+    all->setHue(hue);
+    streak->setHue(hue);
   }
 }
